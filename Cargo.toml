@@ -1,0 +1,16 @@
+[package]
+name = "fluid-rust"
+version = "0.1.0"
+authors = ["Tamás Korodi <tamaskorodi1988@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+emscripten_main_loop = "0.1"
+glium_sdl2 = {git = "https://github.com/Naturseptime/glium-sdl2.git"}
+sdl2 = "0.34"
+rand = "0.7.3"
+
+[dependencies.glium]
+version = "0.28.0"
+default-features = false
+features = []
