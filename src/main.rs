@@ -14,17 +14,17 @@ const SCREEN_SIZE:     (u32, u32) = (1024, 768);
 const SIMULATION_SIZE: (u32, u32) = (320, 240);
 
 const NUMBER_OF_INKS:  u32 = 5;
-const INK_DRAG:        f32 = 5.0;
-const INK_SPREAD:      f32 = 30.0;
+const INK_DRAG:        f32 = 7.0;
+const INK_SPREAD:      f32 = 50.0;
 const INK_SIZE:        f32 = 15.0;
 const VORTICITY:       f32 = 5.0;
 const PRESSURE_ITERS:  u32 = 20;
 
-const RED_RANGE:             (f32, f32) = (0.1, 0.7);
-const GREEN_RANGE:           (f32, f32) = (0.1, 0.5);
-const BLUE_RANGE:            (f32, f32) = (0.1, 0.3);
-const COLOR_PERIOD_RANGE:    (f32, f32) = (10.0, 200.0);
-const POSITION_PERIOD_RANGE: (f32, f32) = (30.0, 90.0);
+const RED_RANGE:             (f32, f32) = (0.20, 0.90);
+const GREEN_RANGE:           (f32, f32) = (0.15, 0.70);
+const BLUE_RANGE:            (f32, f32) = (0.10, 0.50);
+const COLOR_PERIOD_RANGE:    (f32, f32) = (10.0, 150.0);
+const POSITION_PERIOD_RANGE: (f32, f32) = (20.0, 80.0);
 
 const VERTEX_SHADER_SOURCE: &str = r#"#version 300 es
 	precision mediump float;
@@ -88,14 +88,14 @@ const DIVERGENCE_SHADER_SOURCE: &str = r#"#version 300 es
 		float t = texture(velocity, tpos).y;
 		float b = texture(velocity, bpos).y;
 
-        vec2 m = texture(velocity, mpos).xy;
-        if(lpos.x < 0.0) {l = -m.x;}
-        if(rpos.x > 1.0) {r = -m.x;}
-        if(tpos.y > 1.0) {t = -m.y;}
-        if(bpos.y < 0.0) {b = -m.y;}
+		vec2 m = texture(velocity, mpos).xy;
+		if(lpos.x < 0.0) {l = -m.x;}
+		if(rpos.x > 1.0) {r = -m.x;}
+		if(tpos.y > 1.0) {t = -m.y;}
+		if(bpos.y < 0.0) {b = -m.y;}
 
-        float div = 0.5 * (r - l + t - b);
-        fragment = vec4(div, 0.0, 0.0, 1.0);
+		float div = 0.5 * (r - l + t - b);
+		fragment = vec4(div, 0.0, 0.0, 1.0);
 	}"#;
 
 const PRESSURE_SHADER_SOURCE: &str = r#"#version 300 es
@@ -112,8 +112,8 @@ const PRESSURE_SHADER_SOURCE: &str = r#"#version 300 es
 		float b = texture(pressure, bpos).x;
 		float m = texture(divergence, mpos).x;
 
-        float p = 0.25 * (l + r + t + b - m);
-        fragment = vec4(p, 0.0, 0.0, 1.0);
+		float p = 0.25 * (l + r + t + b - m);
+		fragment = vec4(p, 0.0, 0.0, 1.0);
 	}"#;
 
 
@@ -130,50 +130,50 @@ const DIFFERENCE_SHADER_SOURCE: &str = r#"#version 300 es
 		float t = texture(pressure, tpos).x;
 		float b = texture(pressure, bpos).x;
 
-        vec2 vel = texture(velocity, mpos).xy;
-        vel.xy -= vec2(r - l, t - b) * 0.5 * 0.8;
-        fragment = vec4(vel, 0.0, 1.0);
+		vec2 vel = texture(velocity, mpos).xy;
+		vel.xy -= vec2(r - l, t - b) * 0.5 * 0.8;
+		fragment = vec4(vel, 0.0, 1.0);
 	}"#;
 
 const CURL_SHADER_SOURCE: &str = r#"#version 300 es
 	precision mediump float;
 	in vec2 mpos, lpos, rpos, tpos, bpos;
 	out vec4 fragment;
-    uniform sampler2D velocity;
+	uniform sampler2D velocity;
 
-    void main () {
+	void main () {
 		float l = texture(velocity, lpos).y;
 		float r = texture(velocity, rpos).y;
 		float t = texture(velocity, tpos).x;
 		float b = texture(velocity, bpos).x;
-        float curl = 0.5 * (r - l - t + b);
-        fragment = vec4(curl, 0.0, 0.0, 1.0);
-    }"#;
+		float curl = 0.5 * (r - l - t + b);
+		fragment = vec4(curl, 0.0, 0.0, 1.0);
+	}"#;
 
 const VORTICITY_SHADER_SOURCE: &str = r#"#version 300 es
 	precision mediump float;
 	in vec2 mpos, lpos, rpos, tpos, bpos;
 	out vec4 fragment;
-    uniform sampler2D velocity;
-    uniform sampler2D curl;
-    uniform float dt;
-    uniform float vorticity;
+	uniform sampler2D velocity;
+	uniform sampler2D curl;
+	uniform float dt;
+	uniform float vorticity;
 
-    void main () {
-        float l = texture(curl, lpos).x;
-        float r = texture(curl, rpos).x;
-        float t = texture(curl, tpos).x;
-        float b = texture(curl, bpos).x;
-        float m = texture(curl, mpos).x;
+	void main () {
+		float l = texture(curl, lpos).x;
+		float r = texture(curl, rpos).x;
+		float t = texture(curl, tpos).x;
+		float b = texture(curl, bpos).x;
+		float m = texture(curl, mpos).x;
 
-        vec2 force = 0.5 * vec2(abs(t) - abs(b), abs(l) - abs(r));
-        force /= length(force) + 0.0001;
-        force *= vorticity * m;
+		vec2 force = 0.5 * vec2(abs(t) - abs(b), abs(l) - abs(r));
+		force /= length(force) + 0.0001;
+		force *= vorticity * m;
 
-        vec2 velocity = texture(velocity, mpos).xy;
-        velocity += force * dt;
-        fragment = vec4(velocity, 0.0, 1.0);
-    }"#;
+		vec2 velocity = texture(velocity, mpos).xy;
+		velocity += force * dt;
+		fragment = vec4(velocity, 0.0, 1.0);
+	}"#;
 
 const FORCE_SHADER_SOURCE: &str = r#"#version 300 es
 	precision mediump float;
@@ -194,12 +194,12 @@ const FORCE_SHADER_SOURCE: &str = r#"#version 300 es
 
 	mediump float rand(vec2 co)
 	{
-	    mediump float a = 12.9898;
-	    mediump float b = 78.233;
-	    mediump float c = 43758.5453;
-	    mediump float dt= dot(co.xy ,vec2(a,b));
-	    mediump float sn= mod(dt,3.14);
-	    return fract(sin(sn) * c);
+		mediump float a = 12.9898;
+		mediump float b = 78.233;
+		mediump float c = 43758.5453;
+		mediump float dt= dot(co.xy ,vec2(a,b));
+		mediump float sn= mod(dt,3.14);
+		return fract(sin(sn) * c);
 	}
 	void main() {
 		vec2 ink_ortho = vec2(ink_velocity.y, -ink_velocity.x);
@@ -263,38 +263,38 @@ struct InkState
 {
 	position : (f32, f32),
 	velocity : (f32, f32),
-	color    : (f32, f32, f32, f32)
+	color	: (f32, f32, f32, f32)
 }
 
 struct Simulation {
 	sdl_context : sdl2::Sdl,
-	display : glium_sdl2::Display,
+	display     : glium_sdl2::Display,
 
 	timer : f64,
-	last_frame         : std::time::Instant,
-	vertex_buffer      : glium::VertexBuffer<Vertex>,
-	index_buffer       : glium::IndexBuffer<u16>,
+	last_frame		   : std::time::Instant,
+	vertex_buffer	   : glium::VertexBuffer<Vertex>,
+	index_buffer	   : glium::IndexBuffer<u16>,
 
 	advection_program  : glium::Program,
 	divergence_program : glium::Program,
 	pressure_program   : glium::Program,
 	difference_program : glium::Program,
-	curl_program       : glium::Program,
+	curl_program	   : glium::Program,
 	vorticity_program  : glium::Program,
-	force_program      : glium::Program,
-	ink_program        : glium::Program,
-	output_program     : glium::Program,
+	force_program	   : glium::Program,
+	ink_program		   : glium::Program,
+	output_program	   : glium::Program,
 
-	color_texture         : texture::Texture2d,
-	color_texture_work    : texture::Texture2d,
-	velocity_texture      : texture::Texture2d,
+	color_texture		  : texture::Texture2d,
+	color_texture_work	  : texture::Texture2d,
+	velocity_texture	  : texture::Texture2d,
 	velocity_texture_work : texture::Texture2d,
-	divergence_texture    : texture::Texture2d,
-	curl_texture          : texture::Texture2d,
-	pressure_texture      : texture::Texture2d,
+	divergence_texture	  : texture::Texture2d,
+	curl_texture		  : texture::Texture2d,
+	pressure_texture	  : texture::Texture2d,
 	pressure_texture_work : texture::Texture2d,
 
-	inks                  : Vec::<InkParameter>
+	inks				  : Vec::<InkParameter>
 }
 
 struct Oscillation {
@@ -440,25 +440,25 @@ impl Simulation
 			divergence_program: glium::Program::from_source(&display, VERTEX_SHADER_SOURCE, DIVERGENCE_SHADER_SOURCE, None).unwrap(),
 			pressure_program:   glium::Program::from_source(&display, VERTEX_SHADER_SOURCE, PRESSURE_SHADER_SOURCE, None).unwrap(),
 			difference_program: glium::Program::from_source(&display, VERTEX_SHADER_SOURCE, DIFFERENCE_SHADER_SOURCE, None).unwrap(),
-			curl_program:       glium::Program::from_source(&display, VERTEX_SHADER_SOURCE, CURL_SHADER_SOURCE, None).unwrap(),
+			curl_program:	   glium::Program::from_source(&display, VERTEX_SHADER_SOURCE, CURL_SHADER_SOURCE, None).unwrap(),
 			vorticity_program:  glium::Program::from_source(&display, VERTEX_SHADER_SOURCE, VORTICITY_SHADER_SOURCE, None).unwrap(),
-			force_program:      glium::Program::from_source(&display, INK_VERTEX_SHADER_SOURCE, FORCE_SHADER_SOURCE, None).unwrap(),
-			ink_program:        glium::Program::from_source(&display, INK_VERTEX_SHADER_SOURCE, INK_SHADER_SOURCE, None).unwrap(),
-			output_program:     glium::Program::from_source(&display, VERTEX_SHADER_SOURCE, OUTPUT_SHADER_SOURCE, None).unwrap(),
+			force_program:	  glium::Program::from_source(&display, INK_VERTEX_SHADER_SOURCE, FORCE_SHADER_SOURCE, None).unwrap(),
+			ink_program:		glium::Program::from_source(&display, INK_VERTEX_SHADER_SOURCE, INK_SHADER_SOURCE, None).unwrap(),
+			output_program:	 glium::Program::from_source(&display, VERTEX_SHADER_SOURCE, OUTPUT_SHADER_SOURCE, None).unwrap(),
 
-			color_texture:         texture::Texture2d::with_format(&display, empty_data(SCREEN_SIZE),
+			color_texture:		 texture::Texture2d::with_format(&display, empty_data(SCREEN_SIZE),
 				texture::UncompressedFloatFormat::F32F32F32F32, texture::MipmapsOption::NoMipmap).unwrap(),
-			color_texture_work:    texture::Texture2d::with_format(&display, empty_data(SCREEN_SIZE),
+			color_texture_work:	texture::Texture2d::with_format(&display, empty_data(SCREEN_SIZE),
 				texture::UncompressedFloatFormat::F32F32F32F32, texture::MipmapsOption::NoMipmap).unwrap(),
-			velocity_texture:      texture::Texture2d::with_format(&display, empty_data(SIMULATION_SIZE),
+			velocity_texture:	  texture::Texture2d::with_format(&display, empty_data(SIMULATION_SIZE),
 				texture::UncompressedFloatFormat::F32F32F32F32, texture::MipmapsOption::NoMipmap).unwrap(),
 			velocity_texture_work: texture::Texture2d::with_format(&display, empty_data(SIMULATION_SIZE),
 				texture::UncompressedFloatFormat::F32F32F32F32, texture::MipmapsOption::NoMipmap).unwrap(),
-			divergence_texture:    texture::Texture2d::with_format(&display, empty_data(SIMULATION_SIZE),
+			divergence_texture:	texture::Texture2d::with_format(&display, empty_data(SIMULATION_SIZE),
 				texture::UncompressedFloatFormat::F32F32F32F32, texture::MipmapsOption::NoMipmap).unwrap(),
-			curl_texture:          texture::Texture2d::with_format(&display, empty_data(SIMULATION_SIZE),
+			curl_texture:		  texture::Texture2d::with_format(&display, empty_data(SIMULATION_SIZE),
 				texture::UncompressedFloatFormat::F32F32F32F32, texture::MipmapsOption::NoMipmap).unwrap(),
-			pressure_texture:      texture::Texture2d::with_format(&display, empty_data(SIMULATION_SIZE),
+			pressure_texture:	  texture::Texture2d::with_format(&display, empty_data(SIMULATION_SIZE),
 				texture::UncompressedFloatFormat::F32F32F32F32, texture::MipmapsOption::NoMipmap).unwrap(),
 			pressure_texture_work: texture::Texture2d::with_format(&display, empty_data(SIMULATION_SIZE),
 				texture::UncompressedFloatFormat::F32F32F32F32, texture::MipmapsOption::NoMipmap).unwrap(),
@@ -476,7 +476,7 @@ impl Simulation
 		self.last_frame = std::time::Instant::now();
 		self.timer += dt as f64;
 
-        let simulation_viewport = glium::Rect{left: 0, bottom: 0, width: SIMULATION_SIZE.0, height: SIMULATION_SIZE.1};
+		let simulation_viewport = glium::Rect{left: 0, bottom: 0, width: SIMULATION_SIZE.0, height: SIMULATION_SIZE.1};
 		let simulation_parameters = glium::DrawParameters {viewport: Some(simulation_viewport), .. Default::default()};
 		let blend_parameters = glium::DrawParameters {blend: glium::Blend::alpha_blending(), .. Default::default()};
 		let texelsize = (1.0 / (SIMULATION_SIZE.0 as f32), 1.0 / (SIMULATION_SIZE.1 as f32));
@@ -488,7 +488,7 @@ impl Simulation
 			.minify_filter(glium::uniforms::MinifySamplerFilter::Linear)
 			.wrap_function(glium::uniforms::SamplerWrapFunction::Clamp)};
 
-        self.curl_texture.as_surface().draw(&self.vertex_buffer, &self.index_buffer, &self.curl_program,
+		self.curl_texture.as_surface().draw(&self.vertex_buffer, &self.index_buffer, &self.curl_program,
 			&uniform!{
 				velocity: boudary_sampler(&self.velocity_texture),
 				texelsize: texelsize},
@@ -502,7 +502,7 @@ impl Simulation
 			&simulation_parameters).unwrap();
 		swap(&mut self.velocity_texture, &mut self.velocity_texture_work);
 
-        self.divergence_texture.as_surface().draw(&self.vertex_buffer, &self.index_buffer, &self.divergence_program,
+		self.divergence_texture.as_surface().draw(&self.vertex_buffer, &self.index_buffer, &self.divergence_program,
 			&uniform!{
 				velocity: boudary_sampler(&self.velocity_texture),
 				texelsize: texelsize},
@@ -518,7 +518,7 @@ impl Simulation
 			swap(&mut self.pressure_texture, &mut self.pressure_texture_work);
 		}
 
-        self.velocity_texture_work.as_surface().draw(&self.vertex_buffer, &self.index_buffer, &self.difference_program,
+		self.velocity_texture_work.as_surface().draw(&self.vertex_buffer, &self.index_buffer, &self.difference_program,
 			&uniform!{velocity: boudary_sampler(&self.velocity_texture), pressure: boudary_sampler(&self.pressure_texture), texelsize: texelsize},
 			&simulation_parameters).unwrap();
 		swap(&mut self.velocity_texture, &mut self.velocity_texture_work);
@@ -548,7 +548,7 @@ impl Simulation
 					texelsize: texelsize},
 				&blend_parameters).unwrap();}
 
-        self.velocity_texture_work.as_surface().draw(&self.vertex_buffer, &self.index_buffer, &self.advection_program,
+		self.velocity_texture_work.as_surface().draw(&self.vertex_buffer, &self.index_buffer, &self.advection_program,
 			&uniform!{
 				image: boudary_sampler(&self.velocity_texture),
 				velocity: boudary_sampler(&self.velocity_texture),
@@ -565,10 +565,10 @@ impl Simulation
 		swap(&mut self.color_texture, &mut self.color_texture_work);
 
 
-        let mut target = self.display.draw();
-        target.draw(&self.vertex_buffer, &self.index_buffer, &self.output_program,
+		let mut target = self.display.draw();
+		target.draw(&self.vertex_buffer, &self.index_buffer, &self.output_program,
 			&uniform!{image: boudary_sampler(&self.color_texture), texelsize: texelsize}, &Default::default()).unwrap();
-        target.finish().unwrap();
+		target.finish().unwrap();
 	}
 }
 
@@ -579,21 +579,21 @@ impl emscripten_main_loop::MainLoop for Simulation
 		let mut running = emscripten_main_loop::MainLoopEvent::Continue;
 		let mut event_pump = self.sdl_context.event_pump().unwrap();
 
-        self.run();
-        for event in event_pump.poll_iter() {
-            use sdl2::event::Event;
+		self.run();
+		for event in event_pump.poll_iter() {
+			use sdl2::event::Event;
 
-            match event {
-                Event::Quit { .. } => {
-                    running = emscripten_main_loop::MainLoopEvent::Terminate;
-                },
-                Event::KeyDown { keycode: Some(sdl2::keyboard::Keycode::Escape), .. } => {
-                    running = emscripten_main_loop::MainLoopEvent::Terminate;
-                },
-                _ => ()
-            }
-        }
-        running
+			match event {
+				Event::Quit { .. } => {
+					running = emscripten_main_loop::MainLoopEvent::Terminate;
+				},
+				Event::KeyDown { keycode: Some(sdl2::keyboard::Keycode::Escape), .. } => {
+					running = emscripten_main_loop::MainLoopEvent::Terminate;
+				},
+				_ => ()
+			}
+		}
+		running
 	}
 }
 
