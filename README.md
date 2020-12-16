@@ -3,7 +3,7 @@ Fluid simulation demo written in Rust, Glium and GLSL.
 The Navier-Stokes-equations are computed with Stam's method.
 Details of the implementation can be found in the GPU-Gems article.
 
-There is also a (live demo)[https://naturseptime.github.io/rusty-fluid-emscripten/] (built with Emscripten)
+There is also a [live demo](https://naturseptime.github.io/rusty-fluid-emscripten/) compiled with Emscripten.
 
 Feel free to customize the demo.
 
