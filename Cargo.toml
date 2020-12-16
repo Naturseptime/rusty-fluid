@@ -1,5 +1,5 @@
 [package]
-name = "fluid-rust"
+name = "rusty-fluid"
 version = "0.1.0"
 authors = ["Tamás Korodi <tamaskorodi1988@gmail.com>"]
 edition = "2018"
